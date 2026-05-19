@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Authentication Demo System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh}
+
+/* HEADER */
+header{background:#1a1f2e;border-bottom:1px solid #2d3748;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:12px}
+.shield{width:34px;height:34px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;border:1px solid #2d4a6e}
+header h1{font-size:16px;font-weight:600;color:#e2e8f0}
+header p{font-size:11px;color:#718096;margin-top:1px}
+.header-right{font-family:monospace;font-size:11px;color:#4a5568;text-align:right}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 57px)}
+@media(max-width:900px){.app{grid-template-columns:1fr}}
+
+/* LEFT PANEL */
+.left-panel{background:#141822;border-right:1px solid #2d3748;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.panel-label{font-size:10px;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px}
+
+textarea{width:100%;font-family:"SFMono-Regular",Consolas,monospace;font-size:11px;line-height:1.7;padding:12px;background:#0f1117;border:1px solid #2d3748;border-radius:8px;color:#a8b8d8;resize:vertical;min-height:240px;outline:none;transition:border-color 0.2s}
+textarea:focus{border-color:#3b82f6}
+
+.dns-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0f1117;border:1px solid #2d3748;border-radius:8px;cursor:pointer}
+.dns-toggle input{accent-color:#3b82f6;width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.dns-toggle label{font-size:13px;color:#a0aec0;cursor:pointer;flex:1}
+.live-badge{font-family:monospace;font-size:9px;padding:2px 7px;background:#1e3a5f;color:#60a5fa;border-radius:4px;text-transform:uppercase;letter-spacing:0.05em;border:1px solid #2d4a6e}
+
+.submit-btn{width:100%;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.submit-btn:hover{background:#2563eb}
+
+.guide-item{background:#0f1117;border:1px solid #1e2536;border-radius:8px;padding:10px 12px;font-size:12px;color:#718096;line-height:1.6}
+.guide-item strong{color:#e2e8f0}
+
+/* RIGHT PANEL */
+.right-panel{padding:20px;overflow-y:auto}
+
+/* TABS */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid #2d3748;padding-bottom:12px}
+.tab{padding:6px 14px;border-radius:6px;border:1px solid transparent;background:transparent;color:#718096;font-size:12px;cursor:pointer;transition:all 0.15s;font-weight:500}
+.tab:hover{background:#1e2536;color:#e2e8f0}
+.tab.active{background:#1e2d40;border-color:#3b82f6;color:#93c5fd}
+.panel{display:none}
+.panel.active{display:block}
+
+/* CARDS */
+.card{background:#1a1f2e;border:1px solid #2d3748;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #1e2536}
+.card-title{font-size:13px;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:8px}
+.step-num{width:22px;height:22px;background:#1e3a5f;border:1px solid #2d4a6e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:10px;font-weight:600;color:#60a5fa;flex-shrink:0}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:monospace}
+.badge-pass{background:#052e16;color:#34d399;border:1px solid #065f46}
+.badge-fail{background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d}
+.badge-warn{background:#2d1e00;color:#fbbf24;border:1px solid #78350f}
+.badge-neutral{background:#1e2536;color:#94a3b8;border:1px solid #2d3748}
+
+/* FIELD ROWS */
+.row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1e2536;font-size:13px;gap:12px}
+.row:last-child{border-bottom:none}
+.row label{color:#718096;font-size:12px;flex-shrink:0;padding-top:1px}
+.mono{font-family:"SFMono-Regular",Consolas,monospace;font-size:11px;background:#0f1117;padding:2px 7px;border-radius:4px;color:#a78bfa;word-break:break-all;text-align:right}
+
+/* VERDICT BANNER */
+.verdict-banner{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-radius:10px;margin-bottom:14px;border:1px solid}
+.verdict-pass{background:#052e16;border-color:#065f46}
+.verdict-fail{background:#2d0a0a;border-color:#7f1d1d}
+.verdict-label{font-size:10px;font-weight:600;color:#718096;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.verdict-status{font-size:32px;font-weight:800;letter-spacing:-0.02em;line-height:1}
+.verdict-pass .verdict-status{color:#34d399}
+.verdict-fail .verdict-status{color:#f87171}
+.verdict-disp{font-family:monospace;font-size:12px;font-weight:600;padding:8px 16px;border-radius:8px;text-transform:uppercase;letter-spacing:0.06em;border:1px solid}
+.verdict-pass .verdict-disp{background:rgba(34,201,122,0.1);color:#34d399;border-color:#065f46}
+.verdict-fail .verdict-disp{background:rgba(242,87,87,0.1);color:#f87171;border-color:#7f1d1d}
+
+/* STAT STRIP */
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-pill{background:#1a1f2e;border:1px solid #2d3748;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-pass{background:#10b981;box-shadow:0 0 6px #10b981}
+.dot-fail{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.dot-warn{background:#f59e0b;box-shadow:0 0 6px #f59e0b}
+.stat-name{font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:#718096;margin-bottom:2px}
+.stat-val{font-size:13px;font-weight:700}
+.val-pass{color:#34d399}
+.val-fail{color:#f87171}
+.val-warn{color:#fbbf24}
+
+/* ALIGNMENT GRID */
+.align-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.align-block{background:#0f1117;border:1px solid #2d3748;border-radius:8px;padding:12px 14px}
+.align-block-label{font-family:monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:#4a5568;margin-bottom:6px}
+.align-result{font-size:15px;font-weight:700}
+.align-mode{font-family:monospace;font-size:10px;color:#4a5568;margin-top:3px}
+
+/* LOG BOX */
+.log-box{background:#080c12;border:1px solid #1e2536;border-radius:8px;padding:10px 12px;font-family:"SFMono-Regular",Consolas,monospace;font-size:11px;line-height:1.9;overflow-y:auto}
+.log-box::-webkit-scrollbar{width:4px}
+.log-box::-webkit-scrollbar-thumb{background:#2d3748;border-radius:4px}
+.log-pass{color:#34d399}
+.log-fail{color:#f87171}
+.log-info{color:#93c5fd}
+.log-warn{color:#fbbf24}
+
+.missing-notice{background:#2d1e00;border:1px solid #78350f;border-radius:8px;padding:10px 14px;font-size:12px;color:#fbbf24;font-family:monospace}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 24px;color:#4a5568}
+.empty-icon{font-size:40px;margin-bottom:14px}
+.empty-state h3{font-size:16px;font-weight:600;color:#718096;margin-bottom:8px}
+.empty-state p{font-size:13px;line-height:1.6;max-width:300px;margin:0 auto}
+
+/* DNS */
+.dns-record{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #1e2536}
+.dns-record:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.dns-record-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+
+footer{text-align:center;padding:14px;font-size:11px;color:#4a5568;border-top:1px solid #1e2536;font-family:monospace}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.animate{animation:fadeUp 0.3s ease both}
+.d1{animation-delay:0.05s}.d2{animation-delay:0.10s}.d3{animation-delay:0.15s}.d4{animation-delay:0.20s}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="shield">🛡️</div>
+    <div>
+      <h1>Email Authentication System</h1>
+      <p>SPF · DKIM · DMARC Verification Pipeline</p>
+    </div>
+  </div>
+  <div class="header-right">
+    BSc Thesis · Lead City University<br>LCU/UG/23/25477
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ═══════════ LEFT: INPUT ═══════════ -->
+  <div class="left-panel">
+    <div>
+      <div class="panel-label">Input</div>
+      <form method="POST" action="/">
+        <label style="display:block;font-size:11px;color:#4a5568;font-family:monospace;margin-bottom:6px;">Paste raw email headers / full message</label>
+        <textarea name="raw_email" rows="14" placeholder="Received: from mail.example.com (198.51.100.12)&#10;  by mx.receiver.org with ESMTP;&#10;From: sender@example.com&#10;DKIM-Signature: v=1; a=rsa-sha256; d=example.com;&#10;  s=default; bh=...; b=...&#10;&#10;(paste full headers here)">{{ raw_email }}</textarea>
+
+        <div class="dns-toggle" style="margin:10px 0">
+          <input type="checkbox" name="use_live_dns" id="live_dns" value="1" {% if use_live_dns %}checked{% endif %}>
+          <label for="live_dns">Enable Live DNS Query Mode</label>
+          <span class="live-badge">Live</span>
+        </div>
+
+        <button type="submit" class="submit-btn">⚡ Run Verification Pipeline</button>
+      </form>
+    </div>
+
+    <div>
+      <div class="panel-label">Protocol Guide</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="guide-item"><strong>SPF</strong> — Checks the sending server IP against the domain's authorised sender list.</div>
+        <div class="guide-item"><strong>DKIM</strong> — Verifies an RSA cryptographic signature tied to the sending domain.</div>
+        <div class="guide-item"><strong>DMARC</strong> — Enforces alignment policy across SPF &amp; DKIM; decides reject / quarantine / none.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ RIGHT: RESULTS ═══════════ -->
+  <div class="right-panel">
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('overview')">Overview</button>
+      <button class="tab" onclick="showTab('spf')">🛡️ SPF</button>
+      <button class="tab" onclick="showTab('dkim')">🔑 DKIM</button>
+      <button class="tab" onclick="showTab('dmarc')">📊 DMARC</button>
+      <button class="tab" onclick="showTab('dns')">🌐 DNS Lookup</button>
+      <button class="tab" onclick="showTab('audit')">📋 Audit Log</button>
+    </div>
+
+    <!-- ─── OVERVIEW ─── -->
+    <div id="tab-overview" class="panel active">
+      {% if not results %}
+      <div class="empty-state">
+        <div class="empty-icon">📨</div>
+        <h3>Awaiting Email Input</h3>
+        <p>Paste raw email headers on the left and click <strong>Run Verification Pipeline</strong> to start the authentication chain.</p>
+      </div>
+      {% else %}
+
+      <div class="verdict-banner {% if results.dmarc.passed %}verdict-pass{% else %}verdict-fail{% endif %} animate">
+        <div>
+          <div class="verdict-label">DMARC Final Verdict</div>
+          <div class="verdict-status">{% if results.dmarc.passed %}PASS ✓{% else %}FAIL ✗{% endif %}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="verdict-disp">{{ results.dmarc.disposition }}</div>
+          <div style="font-size:11px;color:#4a5568;margin-top:6px;font-family:monospace">{{ results.parsed.from_domain }}</div>
+        </div>
+      </div>
+
+      <div class="stat-strip animate d1">
+        <div class="stat-pill">
+          <div class="stat-dot {% if results.spf.result == 'Pass' %}dot-pass{% else %}dot-fail{% endif %}"></div>
+          <div>
+            <div class="stat-name">SPF</div>
+            <div class="stat-val {% if results.spf.result == 'Pass' %}val-pass{% else %}val-fail{% endif %}">{{ results.spf.result }}</div>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-dot {% if results.dkim.result %}dot-pass{% else %}dot-fail{% endif %}"></div>
+          <div>
+            <div class="stat-name">DKIM</div>
+            <div class="stat-val {% if results.dkim.result %}val-pass{% else %}val-fail{% endif %}">{% if results.dkim.result %}Valid{% else %}Invalid{% endif %}</div>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-dot {% if results.dmarc.passed %}dot-pass{% else %}dot-fail{% endif %}"></div>
+          <div>
+            <div class="stat-name">DMARC</div>
+            <div class="stat-val {% if results.dmarc.passed %}val-pass{% else %}val-fail{% endif %}">{% if results.dmarc.passed %}Pass{% else %}Fail{% endif %}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px" class="animate d2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🛡️ SPF</div>
+            <span class="badge {% if results.spf.result == 'Pass' %}badge-pass{% else %}badge-warn{% endif %}">{{ results.spf.result }}</span>
+          </div>
+          <div class="row"><label>Connecting IP</label><span class="mono" style="color:#f87171">{{ results.parsed.connecting_ip }}</span></div>
+          <div class="row"><label>Domain</label><span class="mono">{{ results.parsed.spf_domain }}</span></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔑 DKIM</div>
+            <span class="badge {% if results.dkim.result %}badge-pass{% else %}badge-fail{% endif %}">{% if results.dkim.result %}Valid{% else %}Absent{% endif %}</span>
+          </div>
+          {% if results.parsed.dkim_tags %}
+          <div class="row"><label>d=</label><span class="mono">{{ results.parsed.dkim_tags.get('d') }}</span></div>
+          <div class="row"><label>Algorithm</label><span class="mono">{{ results.parsed.dkim_tags.get('a', 'rsa-sha256') }}</span></div>
+          {% else %}
+          <div style="font-size:12px;color:#fbbf24;padding:6px 0;font-family:monospace">⚠ No DKIM-Signature header</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card animate d3">
+        <div class="card-header">
+          <div class="card-title"><span class="step-num">03</span> Alignment Summary</div>
+        </div>
+        <div class="align-grid">
+          <div class="align-block">
+            <div class="align-block-label">SPF alignment · aspf={{ results.dmarc.aspf }}</div>
+            <div class="align-result {% if results.dmarc.spf_aligned %}val-pass{% else %}val-fail{% endif %}">
+              {% if results.dmarc.spf_aligned %}✓ Aligned{% else %}✗ Mismatched{% endif %}
+            </div>
+          </div>
+          <div class="align-block">
+            <div class="align-block-label">DKIM alignment · adkim={{ results.dmarc.adkim }}</div>
+            <div class="align-result {% if results.dmarc.dkim_aligned %}val-pass{% else %}val-fail{% endif %}">
+              {% if results.dmarc.dkim_aligned %}✓ Aligned{% else %}✗ Mismatched{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="row"><label>From domain</label><span class="mono">{{ results.parsed.from_domain }}</span></div>
+        <div class="row"><label>DMARC record</label><span class="mono" style="color:#fbbf24;font-size:10px">{{ results.dmarc.record }}</span></div>
+        <div class="row"><label>Policy (p=)</label><span class="mono" style="color:#a78bfa;font-weight:700">{{ results.dmarc.policy | upper }}</span></div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ─── SPF TAB ─── -->
+    <div id="tab-spf" class="panel">
+      {% if not results %}
+      <div class="empty-state"><div class="empty-icon">🛡️</div><h3>No results yet</h3><p>Run the pipeline first.</p></div>
+      {% else %}
+      <div class="card animate">
+        <div class="card-header">
+          <div class="card-title"><span class="step-num">01</span> SPF Protocol Check</div>
+          <span class="badge {% if results.spf.result == 'Pass' %}badge-pass{% else %}badge-warn{% endif %}">{{ results.spf.result }}</span>
+        </div>
+        <div class="row"><label>Connecting IP</label><span class="mono" style="color:#f87171">{{ results.parsed.connecting_ip }}</span></div>
+        <div class="row"><label>SPF domain assessed</label><span class="mono">{{ results.parsed.spf_domain }}</span></div>
+        <div class="row"><label>TXT record</label><span class="mono" style="color:#60a5fa;font-size:10px">{{ results.spf.record }}</span></div>
+        <div class="row"><label>Result</label><span class="mono">{{ results.spf.result | upper }}</span></div>
+      </div>
+      <div class="card animate d1">
+        <div style="font-size:10px;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">SPF Check Trace</div>
+        <div class="log-box" style="max-height:220px">
+          {% for line in results.spf.audit %}
+          <div class="log-info">&gt; {{ line }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ─── DKIM TAB ─── -->
+    <div id="tab-dkim" class="panel">
+      {% if not results %}
+      <div class="empty-state"><div class="empty-icon">🔑</div><h3>No results yet</h3><p>Run the pipeline first.</p></div>
+      {% else %}
+      <div class="card animate">
+        <div class="card-header">
+          <div class="card-title"><span class="step-num">02</span> DKIM Cryptographic Verification</div>
+          <span class="badge {% if results.dkim.result %}badge-pass{% else %}badge-fail{% endif %}">
+            {% if results.dkim.result %}Valid{% else %}Invalid / Absent{% endif %}
+          </span>
+        </div>
+        {% if results.parsed.dkim_tags %}
+        <div class="row"><label>Signing domain (d=)</label><span class="mono" style="color:#60a5fa">{{ results.parsed.dkim_tags.get('d') }}</span></div>
+        <div class="row"><label>Selector (s=)</label><span class="mono">{{ results.parsed.dkim_tags.get('s') }}</span></div>
+        <div class="row"><label>Algorithm (a=)</label><span class="mono" style="color:#a78bfa">{{ results.parsed.dkim_tags.get('a', 'rsa-sha256') }}</span></div>
+        <div class="row"><label>DNS key lookup</label><span class="mono" style="font-size:10px">{{ results.parsed.dkim_tags.get('s') }}._domainkey.{{ results.parsed.dkim_tags.get('d') }}</span></div>
+        {% else %}
+        <div class="missing-notice">⚠ DKIM-Signature header absent from this message payload.</div>
+        {% endif %}
+      </div>
+      <div class="card animate d1">
+        <div style="font-size:10px;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Crypto Handshake Trace</div>
+        <div class="log-box" style="max-height:220px">
+          {% for line in results.dkim.audit %}
+          <div class="log-info">&gt; {{ line }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ─── DMARC TAB ─── -->
+    <div id="tab-dmarc" class="panel">
+      {% if not results %}
+      <div class="empty-state"><div class="empty-icon">📊</div><h3>No results yet</h3><p>Run the pipeline first.</p></div>
+      {% else %}
+      <div class="verdict-banner {% if results.dmarc.passed %}verdict-pass{% else %}verdict-fail{% endif %} animate">
+        <div>
+          <div class="verdict-label">DMARC Status</div>
+          <div class="verdict-status">{% if results.dmarc.passed %}PASS{% else %}FAIL{% endif %}</div>
+        </div>
+        <div class="verdict-disp">{{ results.dmarc.disposition }}</div>
+      </div>
+      <div class="card animate d1">
+        <div class="card-header">
+          <div class="card-title"><span class="step-num">03</span> Domain Alignment Check</div>
+        </div>
+        <div class="align-grid">
+          <div class="align-block">
+            <div class="align-block-label">SPF alignment</div>
+            <div class="align-result {% if results.dmarc.spf_aligned %}val-pass{% else %}val-fail{% endif %}">
+              {% if results.dmarc.spf_aligned %}✓ Aligned{% else %}✗ Mismatched{% endif %}
+            </div>
+            <div class="align-mode">mode: {{ results.dmarc.aspf }}</div>
+          </div>
+          <div class="align-block">
+            <div class="align-block-label">DKIM alignment</div>
+            <div class="align-result {% if results.dmarc.dkim_aligned %}val-pass{% else %}val-fail{% endif %}">
+              {% if results.dmarc.dkim_aligned %}✓ Aligned{% else %}✗ Mismatched{% endif %}
+            </div>
+            <div class="align-mode">mode: {{ results.dmarc.adkim }}</div>
+          </div>
+        </div>
+        <div class="row"><label>From domain</label><span class="mono">{{ results.parsed.from_domain }}</span></div>
+        <div class="row"><label>DMARC TXT record</label><span class="mono" style="color:#fbbf24;font-size:10px">{{ results.dmarc.record }}</span></div>
+        <div class="row"><label>Policy (p=)</label><span class="mono" style="color:#a78bfa;font-weight:700">{{ results.dmarc.policy | upper }}</span></div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ─── DNS LOOKUP TAB ─── -->
+    <div id="tab-dns" class="panel">
+      {% if not results %}
+      <div class="empty-state"><div class="empty-icon">🌐</div><h3>No results yet</h3><p>Run the pipeline first.</p></div>
+      {% else %}
+      <div class="card animate">
+        <div class="card-header">
+          <div class="card-title">🌐 DNS TXT Record Lookups</div>
+        </div>
+
+        <div class="dns-record">
+          <div class="dns-record-head">
+            <span class="badge badge-neutral" style="font-size:10px;padding:2px 8px">TXT</span>
+            <span style="font-family:monospace;font-size:12px;color:#93c5fd">_dmarc.{{ results.parsed.from_domain }}</span>
+          </div>
+          <div class="log-box" style="max-height:56px"><div class="log-warn">{{ results.dmarc.record }}</div></div>
+        </div>
+
+        <div class="dns-record">
+          <div class="dns-record-head">
+            <span class="badge badge-neutral" style="font-size:10px;padding:2px 8px">TXT</span>
+            <span style="font-family:monospace;font-size:12px;color:#93c5fd">{{ results.parsed.spf_domain }}</span>
+          </div>
+          <div class="log-box" style="max-height:56px"><div class="log-info">{{ results.spf.record }}</div></div>
+        </div>
+
+        {% if results.parsed.dkim_tags %}
+        <div class="dns-record">
+          <div class="dns-record-head">
+            <span class="badge badge-neutral" style="font-size:10px;padding:2px 8px">TXT</span>
+            <span style="font-family:monospace;font-size:12px;color:#93c5fd">{{ results.parsed.dkim_tags.get('s') }}._domainkey.{{ results.parsed.dkim_tags.get('d') }}</span>
+          </div>
+          <div class="log-box" style="max-height:56px"><div class="log-pass">DKIM public key record retrieved successfully</div></div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ─── AUDIT LOG TAB ─── -->
+    <div id="tab-audit" class="panel">
+      {% if not results %}
+      <div class="empty-state"><div class="empty-icon">📋</div><h3>No results yet</h3><p>Run the pipeline first.</p></div>
+      {% else %}
+      <div class="card animate">
+        <div class="card-header">
+          <div class="card-title">📋 Full Authentication Trace</div>
+          <span class="badge badge-neutral">{{ results.parsed.from_domain }}</span>
+        </div>
+        <div class="log-box" style="max-height:400px">
+          <div class="log-info">&gt; [PIPELINE START] Processing email from: {{ results.parsed.from_domain }}</div>
+          <div class="log-info">&gt; [PARSER] Connecting IP: {{ results.parsed.connecting_ip }}</div>
+          <div class="log-info">&gt; [PARSER] Envelope sender domain: {{ results.parsed.spf_domain }}</div>
+          <div class="log-info">&gt; [PARSER] From: header domain: {{ results.parsed.from_domain }}</div>
+          <div class="log-info">&gt; ───────────────────────────────────</div>
+          {% for line in results.spf.audit %}
+          <div class="log-info">&gt; [SPF] {{ line }}</div>
+          {% endfor %}
+          <div class="log-info">&gt; ───────────────────────────────────</div>
+          {% for line in results.dkim.audit %}
+          <div class="log-info">&gt; [DKIM] {{ line }}</div>
+          {% endfor %}
+          <div class="log-info">&gt; ───────────────────────────────────</div>
+          <div class="log-info">&gt; [DMARC] Querying _dmarc.{{ results.parsed.from_domain }}</div>
+          {% if results.dmarc.spf_aligned %}
+          <div class="log-pass">&gt; [DMARC] SPF alignment: PASS (aspf={{ results.dmarc.aspf }})</div>
+          {% else %}
+          <div class="log-fail">&gt; [DMARC] SPF alignment: FAIL (aspf={{ results.dmarc.aspf }})</div>
+          {% endif %}
+          {% if results.dmarc.dkim_aligned %}
+          <div class="log-pass">&gt; [DMARC] DKIM alignment: PASS (adkim={{ results.dmarc.adkim }})</div>
+          {% else %}
+          <div class="log-fail">&gt; [DMARC] DKIM alignment: FAIL (adkim={{ results.dmarc.adkim }})</div>
+          {% endif %}
+          {% if results.dmarc.passed %}
+          <div class="log-pass">&gt; [DMARC] Final result: PASS — disposition: {{ results.dmarc.disposition }}</div>
+          {% else %}
+          <div class="log-fail">&gt; [DMARC] Final result: FAIL — disposition: {{ results.dmarc.disposition }}</div>
+          {% endif %}
+          <div class="log-info">&gt; [PIPELINE END] Authentication chain complete.</div>
+        </div>
+      </div>
+
+      <div class="card animate d1">
+        <div class="card-header"><div class="card-title">Summary</div></div>
+        <div class="row">
+          <label>SPF result</label>
+          <span class="badge {% if results.spf.result == 'Pass' %}badge-pass{% else %}badge-warn{% endif %}">{{ results.spf.result }}</span>
+        </div>
+        <div class="row">
+          <label>DKIM result</label>
+          <span class="badge {% if results.dkim.result %}badge-pass{% else %}badge-fail{% endif %}">{% if results.dkim.result %}Valid{% else %}Invalid / Absent{% endif %}</span>
+        </div>
+        <div class="row">
+          <label>DMARC result</label>
+          <span class="badge {% if results.dmarc.passed %}badge-pass{% else %}badge-fail{% endif %}">{% if results.dmarc.passed %}Pass{% else %}Fail{% endif %}</span>
+        </div>
+        <div class="row"><label>Disposition enforced</label><span class="mono">{{ results.dmarc.disposition }}</span></div>
+        <div class="row"><label>Policy (p=)</label><span class="mono" style="color:#a78bfa">{{ results.dmarc.policy | upper }}</span></div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<footer>© 2026 Omena Zerubbabel AUSTEN-OSOKPOR · Lead City University · LCU/UG/23/25477</footer>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('onclick') === "showTab('"+name+"')");
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const p = document.getElementById('tab-'+name);
+  if(p) p.classList.add('active');
+}
+// Auto-open overview after form submit
+{% if results %}window.addEventListener('DOMContentLoaded', () => showTab('overview'));{% endif %}
+</script>
+</body>
+</html>
